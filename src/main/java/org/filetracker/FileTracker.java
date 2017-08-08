@@ -51,7 +51,7 @@ public class FileTracker {
                         process(p);
                     } catch (Exception e) {
                         e.printStackTrace();
-                    }
+                    } 
                 }
             } catch (Exception e) {
                 e.printStackTrace();
