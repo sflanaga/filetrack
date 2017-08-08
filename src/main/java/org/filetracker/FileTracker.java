@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
+import org.filetracker.FileTracker.TrackInfo;
+
 public class FileTracker {
 
     public final static Path END = Paths.get("");
@@ -89,17 +91,11 @@ public class FileTracker {
         
         @Override
         public void run() {
-            long lastrun = 0;
             long lastsize = 0L;
-            long lastfilecount = 0L;
             while(true) {
-                long now = System.currentTimeMillis();
-                
                 System.out.printf("size: %s  files read: %d\n%s\n", Util.greekSize(bytesRead.get()-lastsize), filesRead.get(),lastchangemsg.get());
                 
                 lastsize = bytesRead.get();
-                lastfilecount = filesRead.get();
-                
                 try {
                     Thread.sleep(1000L);
                 } catch (InterruptedException e) {
@@ -135,13 +131,11 @@ public class FileTracker {
 
                 long commit_interval = 10;
                 long changecount = 0;
-                long bytecount=0;
                 while (true) {
                     TrackInfo info = sqlQueue.take();
                     if (info == ENDTRACK)
                         break;
 
-                    bytecount += info.size;
                     bytesRead.addAndGet(info.size);
                     filesRead.incrementAndGet();
                     
@@ -160,7 +154,6 @@ public class FileTracker {
                                     + " where path = \"" + currPath + "\"";
                           //   System.out.println(updateSql);
                             lastchangemsg.set(updateSql);
-                            int result = statement.executeUpdate(updateSql);
                             changecount++;
                         }
                         if (rs.next())
@@ -223,8 +216,8 @@ public class FileTracker {
         ticker.setDaemon(true);
         ticker.start();
         
-        final LinkedBlockingQueue<Path> jobQueue = new LinkedBlockingQueue(100);
-        final LinkedBlockingQueue<TrackInfo> sqlQueue = new LinkedBlockingQueue(100);
+        final LinkedBlockingQueue<Path> jobQueue = new LinkedBlockingQueue<Path>(100);
+        final LinkedBlockingQueue<TrackInfo> sqlQueue = new LinkedBlockingQueue<TrackInfo>(100);
 
         FileReader[] readers = new FileReader[no];
         for (int i = 0; i < readers.length; i++) {
